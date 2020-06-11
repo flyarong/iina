@@ -8,6 +8,8 @@
 
 import Cocoa
 
+typealias PK = Preference.Key
+
 class Utility {
 
   static let supportedFileExt: [MPVTrack.TrackType: [String]] = [
@@ -34,6 +36,8 @@ class Utility {
       alert.messageText = NSLocalizedString("alert.title_info", comment: "Information")
     case .warning:
       alert.messageText = NSLocalizedString("alert.title_warning", comment: "Warning")
+    @unknown default:
+      assertionFailure("Unknown \(type(of: alertStyle)) \(alertStyle)")
     }
     alert.informativeText = message
     alert.alertStyle = alertStyle
@@ -49,6 +53,8 @@ class Utility {
       alert.messageText = NSLocalizedString("alert.title_info", comment: "Information")
     case .warning:
       alert.messageText = NSLocalizedString("alert.title_warning", comment: "Warning")
+    @unknown default:
+      assertionFailure("Unknown \(type(of: style)) \(style)")
     }
 
     var format: String
@@ -427,7 +433,7 @@ class Utility {
     }
   }
 
-  // Do not use this function for macOS 10.14+
+  @available(macOS, deprecated: 10.14, message: "Use the system appearance-based APIs instead.")
   static func getAppearanceAndMaterial(from theme: Preference.Theme) -> (NSAppearance?, NSVisualEffectView.Material) {
     switch theme {
     case .ultraDark:
