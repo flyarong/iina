@@ -94,6 +94,8 @@ struct Preference {
 
     static let playlistAutoAdd = Key("playlistAutoAdd")
     static let playlistAutoPlayNext = Key("playlistAutoPlayNext")
+    static let playlistShowMetadata = Key("playlistShowMetadata")
+    static let playlistShowMetadataInMusicMode = Key("playlistShowMetadataInMusicMode")
 
     // UI
 
@@ -229,6 +231,7 @@ struct Preference {
     static let forceTouchAction = Key("forceTouchAction")
 
     static let showRemainingTime = Key("showRemainingTime")
+    static let touchbarShowRemainingTime = Key("touchbarShowRemainingTime")
 
     static let followGlobalSeekTypeWhenAdjustSlider = Key("followGlobalSeekTypeWhenAdjustSlider")
 
@@ -356,6 +359,7 @@ struct Preference {
     case fullscreen
     case pause
     case hideOSC
+    case togglePIP
 
     static var defaultValue = MouseClickAction.none
 
@@ -689,12 +693,15 @@ struct Preference {
 
     .playlistAutoAdd: true,
     .playlistAutoPlayNext: true,
+    .playlistShowMetadata: true,
+    .playlistShowMetadataInMusicMode: true,
 
     .usePhysicalResolution: true,
     .initialWindowSizePosition: "",
     .resizeWindowTiming: ResizeWindowTiming.onlyWhenOpen.rawValue,
     .resizeWindowOption: ResizeWindowOption.videoSize10.rawValue,
     .showRemainingTime: false,
+    .touchbarShowRemainingTime: true,
     .enableThumbnailPreview: true,
     .maxThumbnailPreviewCacheSize: 500,
     .enableThumbnailForRemoteFiles: false,

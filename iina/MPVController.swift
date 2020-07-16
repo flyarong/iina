@@ -64,8 +64,10 @@ class MPVController: NSObject {
     MPVOption.TrackSelection.sid: MPV_FORMAT_INT64,
     MPVOption.Subtitles.secondarySid: MPV_FORMAT_INT64,
     MPVOption.PlaybackControl.pause: MPV_FORMAT_FLAG,
+    MPVOption.PlaybackControl.loopPlaylist: MPV_FORMAT_FLAG,
     MPVProperty.chapter: MPV_FORMAT_INT64,
     MPVOption.Video.deinterlace: MPV_FORMAT_FLAG,
+    MPVOption.Video.hwdec: MPV_FORMAT_STRING,
     MPVOption.Audio.mute: MPV_FORMAT_FLAG,
     MPVOption.Audio.volume: MPV_FORMAT_DOUBLE,
     MPVOption.Audio.audioDelay: MPV_FORMAT_DOUBLE,
@@ -344,15 +346,17 @@ class MPVController: NSObject {
     var openGLInitParams = mpv_opengl_init_params(get_proc_address: mpvGetOpenGLFunc,
                                                   get_proc_address_ctx: nil,
                                                   extra_exts: nil)
-    // var advanced: CInt = 1
-    var params = [
-      mpv_render_param(type: MPV_RENDER_PARAM_API_TYPE, data: apiType),
-      mpv_render_param(type: MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, data: &openGLInitParams),
-      // mpv_render_param(type: MPV_RENDER_PARAM_ADVANCED_CONTROL, data: &advanced),
-      mpv_render_param()
-    ]
-    mpv_render_context_create(&mpvRenderContext, mpv, &params)
-    mpv_render_context_set_update_callback(mpvRenderContext!, mpvUpdateCallback, mutableRawPointerOf(obj: player.mainWindow.videoView.videoLayer))
+    withUnsafeMutablePointer(to: &openGLInitParams) { openGLInitParams in
+      // var advanced: CInt = 1
+      var params = [
+        mpv_render_param(type: MPV_RENDER_PARAM_API_TYPE, data: apiType),
+        mpv_render_param(type: MPV_RENDER_PARAM_OPENGL_INIT_PARAMS, data: openGLInitParams),
+        // mpv_render_param(type: MPV_RENDER_PARAM_ADVANCED_CONTROL, data: &advanced),
+        mpv_render_param()
+      ]
+      mpv_render_context_create(&mpvRenderContext, mpv, &params)
+      mpv_render_context_set_update_callback(mpvRenderContext!, mpvUpdateCallback, mutableRawPointerOf(obj: player.mainWindow.videoView.videoLayer))
+    }
   }
 
   func mpvUninitRendering() {
@@ -761,13 +765,13 @@ class MPVController: NSObject {
       if let paused = UnsafePointer<Bool>(OpaquePointer(property.data))?.pointee {
         if player.info.isPaused != paused {
           player.sendOSD(paused ? .pause : .resume)
-          player.info.isPaused = paused
+          DispatchQueue.main.sync {
+            player.info.isPaused = paused
+          }
         }
-        if player.mainWindow.loaded {
-          if Preference.bool(for: .alwaysFloatOnTop) {
-            DispatchQueue.main.async {
-              self.player.mainWindow.setWindowFloatingOnTop(!paused)
-            }
+        if player.mainWindow.loaded && Preference.bool(for: .alwaysFloatOnTop) {
+          DispatchQueue.main.async {
+            self.player.mainWindow.setWindowFloatingOnTop(!paused)
           }
         }
       }
@@ -786,14 +790,25 @@ class MPVController: NSObject {
         player.sendOSD(.speed(data))
       }
 
+    case MPVOption.PlaybackControl.loopPlaylist:
+      player.syncUI(.playlistLoop)
+
     case MPVOption.Video.deinterlace:
       needReloadQuickSettingsView = true
       if let data = UnsafePointer<Bool>(OpaquePointer(property.data))?.pointee {
         // this property will fire a change event at file start
         if player.info.deinterlace != data {
-          player.sendOSD(.deinterlace(data))
           player.info.deinterlace = data
+          player.sendOSD(.deinterlace(data))
         }
+      }
+
+    case MPVOption.Video.hwdec:
+      needReloadQuickSettingsView = true
+      let data = String(cString: property.data.assumingMemoryBound(to: UnsafePointer<UInt8>.self).pointee)
+      if player.info.hwdec != data {
+        player.info.hwdec = data
+        player.sendOSD(.hwdec(player.info.hwdecEnabled))
       }
 
     case MPVOption.Audio.mute:
